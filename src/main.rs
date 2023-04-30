@@ -2,12 +2,10 @@ use std::fs;
 use std::io;
 
 fn main() {
-
     std::process::exit(real_main());
 }
 
 fn real_main() -> i32 {
-
     let args: Vec<_> = std::env::args().collect();
 
     if args.len() < 2 {
@@ -19,9 +17,7 @@ fn real_main() -> i32 {
 
     let file = fs::File::open(&fname).unwrap();
 
-
     let mut archive = zip::ZipArchive::new(file).unwrap();
-
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
@@ -40,7 +36,7 @@ fn real_main() -> i32 {
 
         if (*file.name()).ends_with('/') {
             println!("File {} extracted to \"{}\"", i, outpath.display());
-            //recursively create a new directory
+
             fs::create_dir_all(&outpath).unwrap();
         } else {
             println!(
@@ -58,7 +54,6 @@ fn real_main() -> i32 {
             let mut outfile = fs::File::create(&outpath).unwrap();
             io::copy(&mut file, &mut outfile).unwrap();
         }
-
 
         #[cfg(unix)]
         {
