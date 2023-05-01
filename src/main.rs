@@ -1,27 +1,20 @@
-extern crate flate2;
-use std::env::args;
-use std::fs::File;
-use std::io::copy;
-use std::io::BufReader;
-use std::time::Instant;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use std::error::Error;
+use std::fs::read;
+
+
+fn read_from_file(path: &str) -> Result<(), Box<dyn Error>>{
+    let mut reader = csv::Reader::from_path((path))?;
+
+    for result in reader.records(){
+        let record = result?;
+        println!("{:?}", record);
+    }
+    Ok(())
+}
 
 fn main() {
-    if args().len() != 3 {
-        eprintln!("Usage: 'source' 'target'");
-        return;
+    if let Err(e) = read_from_file("./addresses.csv"){
+        eprintln!("{}",e);
     }
-    let mut input = BufReader::new(File::open(args().nth(1).unwrap()).unwrap());
-    let output = File::create(args().nth(2).unwrap()).unwrap();
-    let mut encoder = GzEncoder::new(output, Compression::best());
-    let start = Instant::now();
-    copy(&mut input, &mut encoder).unwrap();
-    let output = encoder.finish().unwrap();
-    println!("Source len {:?}",
-             input.get_ref().metadata().unwrap().len());
-    println!("Target len {:?}",
-             output.metadata().unwrap().len());
-    println!("Elapsed:{:?}", start.elapsed());
-
 }
+
