@@ -1,27 +1,41 @@
-extern crate flate2;
-use std::env::args;
-use std::fs::File;
-use std::io::copy;
-use std::io::BufReader;
-use std::time::Instant;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use serde::{Deserialize, Serialize};
+
+
+#[derive(Serialize,Deserialize)]
+struct Paragraph{
+    name: String
+}
+#[derive(Serialize,Deserialize)]
+struct Article{
+    article: String,
+    author: String,
+    paragraph: Vec<Paragraph>
+}
+
+
+
+
 
 fn main() {
-    if args().len() != 3 {
-        eprintln!("Usage: 'source' 'target'");
-        return;
-    }
-    let mut input = BufReader::new(File::open(args().nth(1).unwrap()).unwrap());
-    let output = File::create(args().nth(2).unwrap()).unwrap();
-    let mut encoder = GzEncoder::new(output, Compression::best());
-    let start = Instant::now();
-    copy(&mut input, &mut encoder).unwrap();
-    let output = encoder.finish().unwrap();
-    println!("Source len {:?}",
-             input.get_ref().metadata().unwrap().len());
-    println!("Target len {:?}",
-             output.metadata().unwrap().len());
-    println!("Elapsed:{:?}", start.elapsed());
+    let json = r#"{
+        "article": "how to work witg json in rust",
+        "author": "Zets",
+        "paragraph":[
+        {
+            "name": "VOPVOP"
+        },
+        {
+            "name": "second"
+        }
+        ]
 
+    }"#;
+
+    let parsed: Article = read_json_typed(json);
+    println!("\n\n The name of the first paragraph is: {}", parsed.paragraph[0].name)
+}
+
+fn read_json_typed(raw_json: &str) -> Article{
+    let parsed: Article = serde_json::from_str(raw_json).unwrap();
+    parsed
 }
