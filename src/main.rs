@@ -1,27 +1,30 @@
-extern crate flate2;
-use std::env::args;
-use std::fs::File;
-use std::io::copy;
-use std::io::BufReader;
-use std::time::Instant;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use reqwest::header::USER_AGENT;
+use serde::Deserialize;
+use std::fmt::format;
+use reqwest::Error;
 
-fn main() {
-    if args().len() != 3 {
-        eprintln!("Usage: 'source' 'target'");
-        return;
-    }
-    let mut input = BufReader::new(File::open(args().nth(1).unwrap()).unwrap());
-    let output = File::create(args().nth(2).unwrap()).unwrap();
-    let mut encoder = GzEncoder::new(output, Compression::best());
-    let start = Instant::now();
-    copy(&mut input, &mut encoder).unwrap();
-    let output = encoder.finish().unwrap();
-    println!("Source len {:?}",
-             input.get_ref().metadata().unwrap().len());
-    println!("Target len {:?}",
-             output.metadata().unwrap().len());
-    println!("Elapsed:{:?}", start.elapsed());
+#[derive(Deserialize, Debug)]
+struct User {
+    login: String,
+    id: u32,
+}
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let request_url = format!(
+        "https://api.github.com/repos/{owner}/{repo}/stargazers",
+        owner = "rust-lang-nursery",
+        repo = "rust-cookbook"
+    );
+    println!("{}", request_url);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&request_url)
+        .header(USER_AGENT, "rust web-api-client demo")
+        .send()
+        .await?;
+    let users: Vec<User> = response.json().await?;
+    println!("{:?}", users);
+    Ok(())
+
 
 }
