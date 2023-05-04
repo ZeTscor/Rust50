@@ -1,27 +1,35 @@
-extern crate flate2;
-use std::env::args;
-use std::fs::File;
+use error_chain::error_chain;
 use std::io::copy;
-use std::io::BufReader;
-use std::time::Instant;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use std::fs::File;
+use tempfile::Builder;
 
-fn main() {
-    if args().len() != 3 {
-        eprintln!("Usage: 'source' 'target'");
-        return;
-    }
-    let mut input = BufReader::new(File::open(args().nth(1).unwrap()).unwrap());
-    let output = File::create(args().nth(2).unwrap()).unwrap();
-    let mut encoder = GzEncoder::new(output, Compression::best());
-    let start = Instant::now();
-    copy(&mut input, &mut encoder).unwrap();
-    let output = encoder.finish().unwrap();
-    println!("Source len {:?}",
-             input.get_ref().metadata().unwrap().len());
-    println!("Target len {:?}",
-             output.metadata().unwrap().len());
-    println!("Elapsed:{:?}", start.elapsed());
+error_chain! {
+     foreign_links {
+         Io(std::io::Error);
+         HttpRequest(reqwest::Error);
+     }
+}
 
+#[tokio::main]
+async fn main() -> Result<()> {
+    let tmp_dir = Builder::new().prefix("example").tempdir()?;
+    let target = "https://www.rust-lang.org/logos/rust-logo-512x512.png";
+    let response = reqwest::get(target).await?;
+
+    let mut dest = {
+        let fname = response
+            .url()
+            .path_segments()
+            .and_then(|segments| segments.last())
+            .and_then(|name| if name.is_empty() { None } else { Some(name) })
+            .unwrap_or("tmp.bin");
+
+        println!("file to download: '{}'", fname);
+        let fname = tmp_dir.path().join(fname);
+        println!("will be located under: '{:?}'", fname);
+        File::create(fname)?
+    };
+    let content =  response.text().await?;
+    copy(&mut content.as_bytes(), &mut dest)?;
+    Ok(())
 }
